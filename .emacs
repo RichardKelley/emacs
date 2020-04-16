@@ -15,7 +15,7 @@
  ;; If there is more than one, they won't work right.
  '(org-agenda-files
    (quote
-    ("~/notes/illness.org" "~/notes/inbox.org" "~/notes/unr.org" "~/tmp/testorg/main.org")))
+    ("~/notes/illness.org" "~/notes/inbox.org" "~/notes/unr.org" "~/tmp/testorg/main.org")) t)
  '(package-selected-packages
    (quote
     (cmake-ide cmake-mode cmake-project counsel-etags gnu-elpa-keyring-update flycheck-rust flycheck-rtags company flycheck counsel ivy ivy-bibtex helm cargo deft julia-shell julia-repl julia-mode rust-mode slime))))
@@ -43,6 +43,8 @@
 
 ;;;; Set up deft
 (setq deft-recursive t)
+(setq deft-extensions '("org"))
+(setq deft-directory "~/notes")
 
 ;;;; Set up org-mode
 (setq org-directory "~/notes")
@@ -131,6 +133,8 @@
 (cmake-ide-setup)
 (add-hook 'c-mode-hook 'rtags-start-process-unless-running)
 (add-hook 'c++-mode-hook 'rtags-start-process-unless-running)
+
+
 
 (provide '.emacs)
 ;;; .emacs ends here
