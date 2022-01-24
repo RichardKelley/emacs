@@ -56,14 +56,12 @@
 (setq org-todo-keywords
       '((sequence "TODO"
 		  "STARTED"
-		  "DONE"
-		  "CANCELLED")))
+		  "DONE")))
 
 (setq org-todo-keyword-faces
       '(("TODO" . "red")
 	("STARTED" . "blue")
-	("DONE" . "dark green")
-	("CANCELLED" . "dark orange" )))
+	("DONE" . "dark green")))
 
 ;;;; ORG-JOURNAL
 (use-package org-journal
