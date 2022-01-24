@@ -31,6 +31,28 @@
 (add-hook 'prog-mode-hook 'linum-mode)
 
 ;;;; ORG-MODE
+(use-package org
+  :ensure t
+  :straight t
+  :config
+  (setq org-log-done 'time)
+  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+  (add-hook 'org-mode-hook
+	    (lambda ()
+	      (org-toggle-latex-fragment)))
+  (add-hook 'org-mode-hook
+	    (lambda ()
+	      (add-hook 'after-save-hook 'org-latex-preview nil 'make-it-local))))
+
+(use-package org-bullets
+  :ensure t
+  :straight t
+  :config
+  (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+
+(global-set-key (kbd "C-c l") 'org-store-link)
+(global-set-key (kbd "C-c a") 'org-agenda)
+
 (setq org-todo-keywords
       '((sequence "TODO"
 		  "STARTED"
@@ -42,8 +64,6 @@
 	("STARTED" . "blue")
 	("DONE" . "dark green")
 	("CANCELLED" . "dark orange" )))
-
-(setq org-log-done 'time)
 
 ;;;; ORG-JOURNAL
 (use-package org-journal
