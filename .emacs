@@ -51,6 +51,12 @@
 (setq org-startup-latex-with-latex-preview t)
 (setq org-latex-create-formula-image-program 'dvisvgm)
 
+(setq org-agenda-files (list "~/org/unr.org"
+			     "~/org/crypto.org"
+			     "~/org/personal.org"))
+(setq org-agenda-window-setup 'current-window)
+(setq org-hide-emphasis-markers t)
+
 (use-package org-bullets
   :ensure t
   :straight t
@@ -76,6 +82,7 @@
   :straight t
   :init
   (setq org-journal-prefix-key "C-c j ")
+  :bind (("C-c C-j" . org-journal-new-entry))
   :config
   (setq org-journal-dir "~/journal"
 	org-journal-date-format "%A, %d %B %Y"))
