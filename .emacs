@@ -50,6 +50,8 @@
 
 (setq org-startup-latex-with-latex-preview t)
 (setq org-latex-create-formula-image-program 'dvisvgm)
+(setq org-startup-with-inline-images t)
+(setq org-image-actual-width '(300))      
 
 (setq org-agenda-files (list "~/org/unr.org"
 			     "~/org/crypto.org"
@@ -171,6 +173,10 @@
 	org-roam-ui-open-on-start t))
 
 (setq gdb-many-windows t)
+
+(use-package cmake-mode
+  :ensure t
+  :straight t)  
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
