@@ -1,3 +1,5 @@
+(setq gc-cons-threshold 100000000)
+
 ;;;; STRAIGHT bootstrap
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -15,14 +17,32 @@
 ;;;; USE-PACKAGE
 (straight-use-package 'use-package)
 
+(use-package benchmark-init
+  :ensure t
+  :straight t
+  :config
+  ;; To disable collection of benchmark data after init is done.
+  (add-hook 'after-init-hook 'benchmark-init/deactivate))
+
+(use-package esup
+  :ensure t
+  :straight t)
+(setq esup-depth 0)
+
+(use-package paren
+  :ensure t
+  :straight t)
+
 ;;;; HELM configuration
 (use-package helm
-	     :ensure t
-	     :straight t)
+  :ensure t
+  :defer t
+  :straight t)
+
 (global-set-key (kbd "M-x") 'helm-M-x)
-(setq helm-split-window-in-side-p t)
 (global-set-key (kbd "C-x C-f") 'helm-find-files)
-(helm-mode 1)
+(setq helm-split-window-in-side-p t)
+;(helm-mode 1)
 
 ;; Programming customizations
 (add-hook 'prog-mode-hook 'linum-mode)
@@ -30,6 +50,7 @@
 ;;;; ORG-MODE
 (use-package org
   :ensure t
+  :defer t
   :straight t
   :config
   (setq org-log-done 'time)
@@ -53,6 +74,7 @@
 (use-package org-bullets
   :ensure t
   :straight t
+  :defer t
   :config
   (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
 
@@ -69,11 +91,11 @@
 	("STARTED" . "blue")
 	("DONE" . "dark green")))
 
-
 ;;;; ORG-JOURNAL
 (use-package org-journal
   :ensure t
   :straight t
+  :defer t
   :init
   (setq org-journal-prefix-key "C-c j ")
   :bind (("C-c C-j" . org-journal-new-entry))
@@ -84,25 +106,30 @@
 ;;;; ORG-ROAM
 (use-package websocket
   :ensure t
+  :defer t
   :straight t)
 
 (use-package simple-httpd
   :ensure t
+  :defer t
   :straight t)
 
 (use-package f
   :ensure t
+  :defer t
   :straight t)  
 
 (use-package json
   :ensure t
+  :defer t
   :straight t)
 
 (use-package org-roam
   :ensure t
   :straight t
+  :defer t
   :custom
-  (org-roam-directory (file-truename "~/work/wiki"))
+  (org-roam-directory "~/work/wiki")
   :bind (("C-c n l" . org-roam-buffer-toggle)
 	 ("C-c n f" . org-roam-node-find)
 	 ("C-c n g" . org-roam-graph)
@@ -126,11 +153,12 @@
 	(call-process "evince" nil 0 nil fpath)))
 
 (setq bib-files-directory "~/work/articles.bib"
-      pdf-files-directory (concat (getenv "HOME") "/Dropbox/pdf"))
+      pdf-files-directory "~/Dropbox/pdf")
 
 (use-package helm-bibtex
   :ensure t
   :straight t
+  :defer t
   :config
   (setq bibtex-completion-bibliography bib-files-directory
 	bibtex-completion-library-path pdf-files-directory
@@ -142,22 +170,24 @@
 
 (use-package org-ref
   :ensure t
+  :defer t
   :straight t)
 
 (use-package org-roam-bibtex
   :ensure t
   :straight t
+  :defer t
   :after (org-roam helm-bibtex)
   :bind (:map org-mode-map ("C-c n b" . orb-note-actions))
   :config
   (require 'org-ref))
-(org-roam-bibtex-mode)
+;(org-roam-bibtex-mode)
 
 ;;;; ORG-ROAM-UI
 (use-package org-roam-ui
   :straight (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
   :after org-roam
-;  :hook (after-init . org-roam-ui-mode)
+  :hook (after-init . org-roam-ui-mode)
   :config
   (setq org-roam-ui-sync-theme t
 	org-roam-ui-follow t
@@ -165,7 +195,6 @@
 	org-roam-ui-open-on-start t))
 
 (setq gdb-many-windows t)
-
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
