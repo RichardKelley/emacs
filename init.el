@@ -1,3 +1,5 @@
+(setq gc-cons-threshold 100000000)
+
 ;;;; STRAIGHT bootstrap
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -15,21 +17,32 @@
 ;;;; USE-PACKAGE
 (straight-use-package 'use-package)
 
+(use-package benchmark-init
+  :ensure t
+  :straight t
+  :config
+  ;; To disable collection of benchmark data after init is done.
+  (add-hook 'after-init-hook 'benchmark-init/deactivate))
+
+(use-package esup
+  :ensure t
+  :straight t)
+(setq esup-depth 0)
+
+(use-package paren
+  :ensure t
+  :straight t)
+
 ;;;; HELM configuration
 (use-package helm
   :ensure t
+  :defer t
   :straight t)
-(global-set-key (kbd "M-x") 'helm-M-x)
-(setq helm-split-window-in-side-p t)
-(global-set-key (kbd "C-x C-f") 'helm-find-files)
-(helm-mode 1)
 
-;;;; SLIME
-(use-package slime
-  :ensure t
-  :straight t)
-(setq inferior-lisp-program "/usr/bin/sbcl")
-(setq slime-contribs '(slime-fancy))
+(global-set-key (kbd "M-x") 'helm-M-x)
+(global-set-key (kbd "C-x C-f") 'helm-find-files)
+(setq helm-split-window-in-side-p t)
+(helm-mode 1)
 
 ;; Programming customizations
 (add-hook 'prog-mode-hook 'linum-mode)
@@ -37,6 +50,7 @@
 ;;;; ORG-MODE
 (use-package org
   :ensure t
+  :defer t
   :straight t
   :config
   (setq org-log-done 'time)
@@ -51,17 +65,16 @@
 (setq org-startup-latex-with-latex-preview t)
 (setq org-latex-create-formula-image-program 'dvisvgm)
 (setq org-startup-with-inline-images t)
-(setq org-image-actual-width '(300))      
+(setq org-image-actual-width '(300))
 
-(setq org-agenda-files (list "~/org/unr.org"
-			     "~/org/crypto.org"
-			     "~/org/personal.org"))
+(setq org-agenda-files (list "~/work/agenda.org"))
 (setq org-agenda-window-setup 'current-window)
 (setq org-hide-emphasis-markers t)
 
 (use-package org-bullets
   :ensure t
   :straight t
+  :defer t
   :config
   (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
 
@@ -71,46 +84,59 @@
 (setq org-todo-keywords
       '((sequence "TODO"
 		  "STARTED"
+		  "PAUSED"
+		  "ONGOING"
+		  "CANCELLED"
 		  "DONE")))
 
 (setq org-todo-keyword-faces
       '(("TODO" . "red")
 	("STARTED" . "blue")
+	("PAUSED" . "dark orange")
+	("ONGOING" . "magenta3")
+	("CANCELLED" . "RosyBrown3")
 	("DONE" . "dark green")))
 
 ;;;; ORG-JOURNAL
 (use-package org-journal
   :ensure t
   :straight t
+  :defer t
   :init
   (setq org-journal-prefix-key "C-c j ")
   :bind (("C-c C-j" . org-journal-new-entry))
   :config
-  (setq org-journal-dir "~/journal"
-	org-journal-date-format "%A, %d %B %Y"))
+  (setq org-journal-dir "~/work/journal"
+	org-journal-date-format "%A, %d %B %Y"
+	org-journal-carryover-items "TODO=\"TODO\"|TODO=\"ONGOING\"|TODO=\"STARTED\""))
 
 ;;;; ORG-ROAM
 (use-package websocket
   :ensure t
+  :defer t
   :straight t)
 
 (use-package simple-httpd
   :ensure t
+  :defer t
   :straight t)
 
 (use-package f
   :ensure t
+  :defer t
   :straight t)  
 
 (use-package json
   :ensure t
+  :defer t
   :straight t)
 
 (use-package org-roam
   :ensure t
   :straight t
+  :defer t
   :custom
-  (org-roam-directory (file-truename "/home/richard/my-wiki"))
+  (org-roam-directory "~/work/wiki")
   :bind (("C-c n l" . org-roam-buffer-toggle)
 	 ("C-c n f" . org-roam-node-find)
 	 ("C-c n g" . org-roam-graph)
@@ -133,12 +159,13 @@
       (lambda (fpath)
 	(call-process "evince" nil 0 nil fpath)))
 
-(setq bib-files-directory "~/bib/articles.bib"
-      pdf-files-directory (concat (getenv "HOME") "/Dropbox/pdf"))
+(setq bib-files-directory "~/work/articles.bib"
+      pdf-files-directory "~/Dropbox/pdf")
 
 (use-package helm-bibtex
   :ensure t
   :straight t
+  :defer t
   :config
   (setq bibtex-completion-bibliography bib-files-directory
 	bibtex-completion-library-path pdf-files-directory
@@ -150,22 +177,24 @@
 
 (use-package org-ref
   :ensure t
+  :defer t
   :straight t)
 
 (use-package org-roam-bibtex
   :ensure t
   :straight t
+  :defer t
   :after (org-roam helm-bibtex)
   :bind (:map org-mode-map ("C-c n b" . orb-note-actions))
   :config
   (require 'org-ref))
-(org-roam-bibtex-mode)
+;(org-roam-bibtex-mode)
 
 ;;;; ORG-ROAM-UI
 (use-package org-roam-ui
   :straight (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
   :after org-roam
-;  :hook (after-init . org-roam-ui-mode)
+  :hook (after-init . org-roam-ui-mode)
   :config
   (setq org-roam-ui-sync-theme t
 	org-roam-ui-follow t
@@ -173,115 +202,6 @@
 	org-roam-ui-open-on-start t))
 
 (setq gdb-many-windows t)
-
-(use-package cmake-mode
-  :ensure t
-  :straight t)  
-
-(use-package rustic
-  :ensure t
-  :straight t
-  :bind (:map rustic-mode-map
-              ("M-j" . lsp-ui-imenu)
-              ("M-?" . lsp-find-references)
-              ("C-c C-c l" . flycheck-list-errors)
-              ("C-c C-c a" . lsp-execute-code-action)
-              ("C-c C-c r" . lsp-rename)
-              ("C-c C-c q" . lsp-workspace-restart)
-              ("C-c C-c Q" . lsp-workspace-shutdown)
-              ("C-c C-c s" . lsp-rust-analyzer-status))
-  :config
-  ;; uncomment for less flashiness
-  ;; (setq lsp-eldoc-hook nil)
-  ;; (setq lsp-enable-symbol-highlighting nil)
-  ;; (setq lsp-signature-auto-activate nil)
-
-  ;; comment to disable rustfmt on save
-  (setq rustic-format-on-save t)
-  (add-hook 'rustic-mode-hook 'rk/rustic-mode-hook))
-
-(defun rk/rustic-mode-hook ()
-  ;; so that run C-c C-c C-r works without having to confirm, but don't try to
-  ;; save rust buffers that are not file visiting. Once
-  ;; https://github.com/brotzeit/rustic/issues/253 has been resolved this should
-  ;; no longer be necessary.
-  (when buffer-file-name
-    (setq-local buffer-save-without-query t)))
-
-(use-package lsp-mode
-  :ensure t
-  :straight t
-  :commands lsp
-  :custom
-  ;; what to use when checking on-save. "check" is default, I prefer clippy
-  (lsp-rust-analyzer-cargo-watch-command "clippy")
-  (lsp-eldoc-render-all t)
-  (lsp-idle-delay 0.6)
-  (lsp-rust-analyzer-server-display-inlay-hints t)
-  :config
-  (add-hook 'lsp-mode-hook 'lsp-ui-mode))
-
-(use-package lsp-ui
-  :ensure t
-  :straight t
-  :commands lsp-ui-mode
-  :custom
-  (lsp-ui-peek-always-show t)
-  (lsp-ui-sideline-show-hover t)
-  (lsp-ui-doc-enable nil))
-
-(use-package company
-  :ensure
-  :custom
-  (company-idle-delay 0.5) ;; how long to wait until popup
-  ;; (company-begin-commands nil) ;; uncomment to disable popup
-  :bind
-  (:map company-active-map
-	      ("C-n". company-select-next)
-	      ("C-p". company-select-previous)
-	      ("M-<". company-select-first)
-	      ("M->". company-select-last))
-  (:map company-mode-map
-	("<tab>". tab-indent-or-complete)
-	("TAB". tab-indent-or-complete)))
-
-(defun company-yasnippet-or-completion ()
-  (interactive)
-  (or (do-yas-expand)
-      (company-complete-common)))
-
-(defun check-expansion ()
-  (save-excursion
-    (if (looking-at "\\_>") t
-      (backward-char 1)
-      (if (looking-at "\\.") t
-        (backward-char 1)
-        (if (looking-at "::") t nil)))))
-
-(defun do-yas-expand ()
-  (let ((yas/fallback-behavior 'return-nil))
-    (yas/expand)))
-
-(defun tab-indent-or-complete ()
-  (interactive)
-  (if (minibufferp)
-      (minibuffer-complete)
-    (if (or (not yas/minor-mode)
-            (null (do-yas-expand)))
-        (if (check-expansion)
-            (company-complete-common)
-          (indent-for-tab-command)))))	      
-
-(use-package yasnippet
-  :ensure
-  :config
-  (yas-reload-all)
-  (add-hook 'prog-mode-hook 'yas-minor-mode)
-  (add-hook 'text-mode-hook 'yas-minor-mode))
-
-(use-package flycheck
-  :ensure t
-  :straight t)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
