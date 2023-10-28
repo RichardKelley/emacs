@@ -42,10 +42,11 @@
 (global-set-key (kbd "M-x") 'helm-M-x)
 (global-set-key (kbd "C-x C-f") 'helm-find-files)
 (setq helm-split-window-in-side-p t)
-(helm-mode 1)
+;(helm-mode 1)
 
 ;; Programming customizations
-(add-hook 'prog-mode-hook 'linum-mode)
+;;(add-hook 'prog-mode-hook 'linum-mode)
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
 
 ;;;; ORG-MODE
 (use-package org
@@ -84,17 +85,11 @@
 (setq org-todo-keywords
       '((sequence "TODO"
 		  "STARTED"
-		  "PAUSED"
-		  "ONGOING"
-		  "CANCELLED"
 		  "DONE")))
 
 (setq org-todo-keyword-faces
       '(("TODO" . "red")
 	("STARTED" . "blue")
-	("PAUSED" . "dark orange")
-	("ONGOING" . "magenta3")
-	("CANCELLED" . "RosyBrown3")
 	("DONE" . "dark green")))
 
 ;;;; ORG-JOURNAL
@@ -107,8 +102,7 @@
   :bind (("C-c C-j" . org-journal-new-entry))
   :config
   (setq org-journal-dir "~/work/journal"
-	org-journal-date-format "%A, %d %B %Y"
-	org-journal-carryover-items "TODO=\"TODO\"|TODO=\"ONGOING\"|TODO=\"STARTED\""))
+	org-journal-date-format "%A, %d %B %Y"))
 
 ;;;; ORG-ROAM
 (use-package websocket
@@ -202,6 +196,12 @@
 	org-roam-ui-open-on-start t))
 
 (setq gdb-many-windows t)
+
+(use-package nasm-mode
+  :ensure t
+  :straight t)
+
+(add-to-list 'auto-mode-alist '("\\.asm\\'" . nasm-mode))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
