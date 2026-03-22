@@ -34,7 +34,7 @@
   "Fraction of the frame width used for the right-side panel.")
 
 (defconst richard/bottom-panel-ratio 0.10
-  "Fraction of the frame height used for the bottom shell panel.")
+  "Fraction of the frame height used for the bottom terminal panel.")
 
 (defconst richard/min-left-panel-width 25
   "Minimum width of the left sidebar in columns.")
@@ -49,10 +49,10 @@
   "Maximum width of the right-side panel in columns.")
 
 (defconst richard/min-bottom-panel-height 4
-  "Minimum height of the shell panel in lines.")
+  "Minimum height of the terminal panel in lines.")
 
 (defconst richard/max-bottom-panel-height 10
-  "Maximum height of the shell panel in lines.")
+  "Maximum height of the terminal panel in lines.")
 
 (defconst richard/min-left-column-panel-height 8
   "Minimum height for either left-column panel in lines.")
@@ -138,7 +138,7 @@
    richard/max-right-panel-width))
 
 (defun richard/bottom-panel-height (&optional frame)
-  "Return the autoscaled height for the shell panel in FRAME."
+  "Return the autoscaled height for the terminal panel in FRAME."
   (richard/clamp
    (floor (* (frame-height frame) richard/bottom-panel-ratio))
    richard/min-bottom-panel-height
@@ -205,6 +205,26 @@
       (error
        (package-refresh-contents)
        (package-install package-name)))))
+
+(defun richard/ensure-vterm ()
+  "Install and load vterm, returning non-nil on success."
+  (condition-case err
+      (progn
+        (richard/ensure-package-installed 'vterm)
+        (require 'vterm)
+        (setq vterm-shell (or (getenv "SHELL") shell-file-name))
+        t)
+    (error
+     (message "vterm setup failed: %s" (error-message-string err))
+     nil)))
+
+(defvar richard/vterm-available-p (richard/ensure-vterm)
+  "Non-nil when vterm is installed and available for the bottom panel.")
+
+(defun richard/disable-process-exit-query (buffer)
+  "Prevent BUFFER's process from prompting when Emacs exits."
+  (when-let ((process (get-buffer-process buffer)))
+    (set-process-query-on-exit-flag process nil)))
 
 (defun richard/ensure-treemacs ()
   "Install and load Treemacs, returning non-nil on success."
@@ -279,13 +299,26 @@
         (push (cons scope shelf) treemacs--scope-storage)))))
 
 (defun richard/shell-buffer ()
-  "Return a live shell buffer."
-  (let ((buffer (get-buffer "*shell*")))
-    (unless (comint-check-proc buffer)
-      (save-window-excursion
-        (shell "*shell*"))
-      (setq buffer (get-buffer "*shell*")))
-    buffer))
+  "Return a live terminal buffer, preferring vterm."
+  (if richard/vterm-available-p
+      (let ((buffer (get-buffer "*vterm*")))
+        (unless (and buffer
+                     (let ((process (get-buffer-process buffer)))
+                       (and process (process-live-p process))))
+          (when (buffer-live-p buffer)
+            (kill-buffer buffer))
+          (save-window-excursion
+            (vterm "*vterm*"))
+          (setq buffer (get-buffer "*vterm*")))
+        (richard/disable-process-exit-query buffer)
+        buffer)
+    (let ((buffer (get-buffer "*shell*")))
+      (unless (comint-check-proc buffer)
+        (save-window-excursion
+          (shell "*shell*"))
+        (setq buffer (get-buffer "*shell*")))
+      (richard/disable-process-exit-query buffer)
+      buffer)))
 
 (defun richard/show-side-window (buffer side slot size)
   "Display BUFFER in a dedicated side window on SIDE using SLOT and SIZE."
