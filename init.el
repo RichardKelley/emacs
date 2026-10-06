@@ -206,6 +206,46 @@
        (package-refresh-contents)
        (package-install package-name)))))
 
+;; Rust development.  Make rustup tools visible when Emacs starts from the GUI.
+(let ((cargo-bin (expand-file-name "bin" (or (getenv "CARGO_HOME") "~/.cargo"))))
+  (when (file-directory-p cargo-bin)
+    (add-to-list 'exec-path cargo-bin)
+    (unless (member cargo-bin (split-string (or (getenv "PATH") "") path-separator t))
+      (setenv "PATH" (concat cargo-bin path-separator (getenv "PATH"))))))
+
+(dolist (package '(rust-mode corfu))
+  (richard/ensure-package-installed package))
+
+(setq rust-format-on-save t)
+(add-to-list 'auto-mode-alist '("\\.toml\\'" . conf-toml-mode))
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '((rust-ts-mode rust-mode)
+                 . ("rust-analyzer"
+                    :initializationOptions (:check (:command "clippy"))))))
+
+(defun richard/rust-mode-setup ()
+  "Enable Rust completion, editing helpers, and language-server support."
+  (setq-local indent-tabs-mode nil
+              tab-always-indent 'complete
+              corfu-auto t
+              corfu-auto-prefix 2
+              corfu-auto-delay 0.2)
+  (electric-pair-local-mode 1)
+  (corfu-mode 1)
+  (corfu-popupinfo-mode 1)
+  (when (executable-find "rust-analyzer")
+    (eglot-ensure)))
+
+(add-hook 'rust-mode-hook #'richard/rust-mode-setup)
+
+(with-eval-after-load 'rust-mode
+  ;; Cargo build/run/test/check and rustfmt retain rust-mode's default keys.
+  (keymap-set rust-mode-map "C-c r" #'eglot-rename)
+  (keymap-set rust-mode-map "C-c a" #'eglot-code-actions)
+  (keymap-set rust-mode-map "C-c e" #'flymake-show-buffer-diagnostics))
+
 (defun richard/ensure-vterm ()
   "Load vterm without prompting to compile, returning non-nil on success."
   (condition-case err
