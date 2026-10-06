@@ -207,10 +207,14 @@
        (package-install package-name)))))
 
 (defun richard/ensure-vterm ()
-  "Install and load vterm, returning non-nil on success."
+  "Load vterm without prompting to compile, returning non-nil on success."
   (condition-case err
       (progn
         (richard/ensure-package-installed 'vterm)
+        ;; Loading vterm prompts to compile when its native module is missing.
+        ;; Use the shell fallback until the module is built explicitly.
+        (unless (require 'vterm-module nil t)
+          (error "Native module missing; run M-x vterm to compile it"))
         (require 'vterm)
         (setq vterm-shell (or (getenv "SHELL") shell-file-name))
         t)
