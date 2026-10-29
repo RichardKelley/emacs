@@ -1,0 +1,43 @@
+* Emacs configuration
+
+=init.el= is the current configuration; install it as =~/.emacs.d/init.el=.
+The older =.emacs= and =init.el-*= files are historical configurations.
+The current configuration uses Emacs 30 or newer and installs missing packages
+on startup. The first startup needs network access and Git for Lean's package.
+
+* Rust
+
+Opening a =.rs= file enables =rust-mode=, with Cargo commands and rustfmt on
+save. =lsp-mode= connects to rust-analyzer for completion, diagnostics,
+documentation, navigation, and refactoring. Company displays completions.
+
+Install the external tools with:
+
+#+begin_src sh
+rustup component add rust-analyzer rustfmt clippy
+#+end_src
+
+- =M-TAB=: complete at point.
+- =M-.= / =M-,=: jump to definition / return.
+- =C-c l=: language-server commands, including rename and code actions.
+- =M-x rust-format-buffer=: format the current buffer.
+- =M-x rust-run=, =rust-test=, =rust-compile=, =rust-run-clippy=: Cargo tasks.
+
+* Lean 4
+
+Opening a =.lean= file enables the community's =lean4-mode= with live proof
+checking, completion, and the Lean Unicode input method. Install Lean using
+elan; project =lean-toolchain= files select the appropriate Lean version.
+This configuration adds =~/.elan/bin= and =~/.cargo/bin= to GUI Emacs's path.
+
+- =C-c C-i=: toggle the proof goals and messages in the right panel.
+- =\alpha= followed by space: insert a Unicode symbol (here, alpha).
+- =M-.= / =M-,=: jump to definition / return.
+- =C-c C-d=: rebuild and reload imports.
+- =C-c C-p C-l=: build the project with Lake.
+- =C-c l=: language-server commands.
+
+Lean mode comes from https://github.com/leanprover-community/lean4-mode;
+Rust mode comes from https://github.com/rust-lang/rust-mode.
+Use =M-x list-packages= to manage packages and =M-x package-vc-upgrade= for
+the Git-installed Lean mode. Restart Emacs after changing the configuration.

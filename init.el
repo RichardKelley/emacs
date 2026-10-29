@@ -206,6 +206,74 @@
        (package-refresh-contents)
        (package-install package-name)))))
 
+;; GUI Emacs does not necessarily inherit the shell's toolchain paths.
+(dolist (directory '("~/.cargo/bin" "~/.elan/bin"))
+  (let ((directory (expand-file-name directory)))
+    (when (file-directory-p directory)
+      (add-to-list 'exec-path directory)
+      (unless (member directory (parse-colon-path (getenv "PATH")))
+        (setenv "PATH" (concat directory path-separator (getenv "PATH")))))))
+
+(setq lsp-keymap-prefix "C-c l"
+      lsp-completion-provider :capf
+      lsp-headerline-breadcrumb-enable nil)
+
+(defun richard/language-tools-setup ()
+  "Enable completion and start the language server for this buffer."
+  (setq-local indent-tabs-mode nil
+              company-idle-delay 0.2
+              company-minimum-prefix-length 2)
+  (company-mode 1)
+  (yas-minor-mode 1)
+  (lsp-deferred))
+
+(defun richard/rust-setup ()
+  "Enable Rust editing tools and rust-analyzer."
+  (setq-local rust-format-on-save (and (executable-find "rustfmt") t))
+  (if (executable-find "rust-analyzer")
+      (richard/language-tools-setup)
+    (message "For Rust completion and diagnostics: rustup component add rust-analyzer")))
+
+(defun richard/lean-setup ()
+  "Enable Lean 4 completion and live proof diagnostics."
+  (if (executable-find "lean")
+      (richard/language-tools-setup)
+    (message "Install Lean 4 with elan to enable proof checking")))
+
+(defun richard/ensure-language-tools ()
+  "Install Rust and Lean 4 editor support using package.el."
+  (dolist (package '(lsp-mode company yasnippet rust-mode))
+    (condition-case err
+        (richard/ensure-package-installed package)
+      (error (message "%s setup failed: %s" package (error-message-string err)))))
+  ;; Lean 4 is distributed from Git, rather than the legacy lean-mode package.
+  ;; package-vc retains the data directory needed by Lean's Unicode input method.
+  (condition-case err
+      (unless (package-installed-p 'lean4-mode)
+        (require 'package-vc)
+        (package-vc-install
+         '(lean4-mode :url "https://github.com/leanprover-community/lean4-mode.git")
+         :last-release))
+    (error (message "Lean 4 setup failed: %s" (error-message-string err)))))
+
+(richard/ensure-language-tools)
+(autoload 'rust-mode "rust-mode" nil t)
+(autoload 'lean4-mode "lean4-mode" nil t)
+(autoload 'company-mode "company" nil t)
+(autoload 'yas-minor-mode "yasnippet" nil t)
+(autoload 'lsp-deferred "lsp-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
+(add-to-list 'auto-mode-alist '("\\.lean\\'" . lean4-mode))
+(add-hook 'rust-mode-hook #'richard/rust-setup)
+(add-hook 'lean4-mode-hook #'richard/lean-setup)
+
+;; Use the reserved right panel for Lean's proof state (C-c C-i).
+(add-to-list 'display-buffer-alist
+             '("\\`\\*Lean Goal\\*\\'"
+               (display-buffer-in-side-window)
+               (side . right) (slot . 0)
+               (window-width . 0.30)))
+
 (defun richard/ensure-vterm ()
   "Install and load vterm, returning non-nil on success."
   (condition-case err
@@ -539,10 +607,12 @@
          (richard/shell-buffer)
          'bottom 0
          (richard/bottom-panel-height frame))
-        (richard/show-side-window
-         (richard/right-panel-buffer)
-         'right 0
-         (richard/right-panel-width frame))
+        ;; Keep a displayed Lean proof state when resizing the frame.
+        (unless (get-buffer-window "*Lean Goal*" frame)
+          (richard/show-side-window
+           (richard/right-panel-buffer)
+           'right 0
+           (richard/right-panel-width frame)))
         (let ((center-window (richard/center-window frame)))
           (when (window-live-p center-window)
             (select-window center-window)))))))
