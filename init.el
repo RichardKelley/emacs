@@ -207,7 +207,8 @@
        (package-install package-name)))))
 
 ;; GUI Emacs does not necessarily inherit the shell's toolchain paths.
-(dolist (directory '("~/.cargo/bin" "~/.elan/bin"))
+(dolist (directory (list (expand-file-name "bin" (or (getenv "CARGO_HOME") "~/.cargo"))
+                        "~/.elan/bin"))
   (let ((directory (expand-file-name directory)))
     (when (file-directory-p directory)
       (add-to-list 'exec-path directory)
@@ -218,8 +219,8 @@
       lsp-completion-provider :capf
       lsp-headerline-breadcrumb-enable nil)
 
-(defun richard/language-tools-setup ()
-  "Enable completion and start the language server for this buffer."
+(defun richard/lean-language-tools-setup ()
+  "Enable completion and start the Lean language server for this buffer."
   (setq-local indent-tabs-mode nil
               company-idle-delay 0.2
               company-minimum-prefix-length 2)
@@ -227,22 +228,15 @@
   (yas-minor-mode 1)
   (lsp-deferred))
 
-(defun richard/rust-setup ()
-  "Enable Rust editing tools and rust-analyzer."
-  (setq-local rust-format-on-save (and (executable-find "rustfmt") t))
-  (if (executable-find "rust-analyzer")
-      (richard/language-tools-setup)
-    (message "For Rust completion and diagnostics: rustup component add rust-analyzer")))
-
 (defun richard/lean-setup ()
   "Enable Lean 4 completion and live proof diagnostics."
   (if (executable-find "lean")
-      (richard/language-tools-setup)
+      (richard/lean-language-tools-setup)
     (message "Install Lean 4 with elan to enable proof checking")))
 
-(defun richard/ensure-language-tools ()
-  "Install Rust and Lean 4 editor support using package.el."
-  (dolist (package '(lsp-mode company yasnippet rust-mode))
+(defun richard/ensure-lean-tools ()
+  "Install Lean 4 editor support using package.el."
+  (dolist (package '(lsp-mode company yasnippet))
     (condition-case err
         (richard/ensure-package-installed package)
       (error (message "%s setup failed: %s" package (error-message-string err)))))
@@ -256,15 +250,12 @@
          :last-release))
     (error (message "Lean 4 setup failed: %s" (error-message-string err)))))
 
-(richard/ensure-language-tools)
-(autoload 'rust-mode "rust-mode" nil t)
+(richard/ensure-lean-tools)
 (autoload 'lean4-mode "lean4-mode" nil t)
 (autoload 'company-mode "company" nil t)
 (autoload 'yas-minor-mode "yasnippet" nil t)
 (autoload 'lsp-deferred "lsp-mode" nil t)
-(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
 (add-to-list 'auto-mode-alist '("\\.lean\\'" . lean4-mode))
-(add-hook 'rust-mode-hook #'richard/rust-setup)
 (add-hook 'lean4-mode-hook #'richard/lean-setup)
 
 ;; Use the reserved right panel for Lean's proof state (C-c C-i).
@@ -273,12 +264,51 @@
                (display-buffer-in-side-window)
                (side . right) (slot . 0)
                (window-width . 0.30)))
+;; Rust uses Eglot and Corfu independently of Lean's lsp-mode and Company.
+(dolist (package '(rust-mode corfu))
+  (richard/ensure-package-installed package))
+
+(autoload 'rust-mode "rust-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
+(setq rust-format-on-save t)
+(add-to-list 'auto-mode-alist '("\\.toml\\'" . conf-toml-mode))
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '((rust-ts-mode rust-mode)
+                 . ("rust-analyzer"
+                    :initializationOptions (:check (:command "clippy"))))))
+
+(defun richard/rust-mode-setup ()
+  "Enable Rust completion, editing helpers, and language-server support."
+  (setq-local indent-tabs-mode nil
+              tab-always-indent 'complete
+              corfu-auto t
+              corfu-auto-prefix 2
+              corfu-auto-delay 0.2)
+  (electric-pair-local-mode 1)
+  (corfu-mode 1)
+  (corfu-popupinfo-mode 1)
+  (when (executable-find "rust-analyzer")
+    (eglot-ensure)))
+
+(add-hook 'rust-mode-hook #'richard/rust-mode-setup)
+
+(with-eval-after-load 'rust-mode
+  ;; Cargo build/run/test/check and rustfmt retain rust-mode's default keys.
+  (keymap-set rust-mode-map "C-c r" #'eglot-rename)
+  (keymap-set rust-mode-map "C-c a" #'eglot-code-actions)
+  (keymap-set rust-mode-map "C-c e" #'flymake-show-buffer-diagnostics))
 
 (defun richard/ensure-vterm ()
-  "Install and load vterm, returning non-nil on success."
+  "Load vterm without prompting to compile, returning non-nil on success."
   (condition-case err
       (progn
         (richard/ensure-package-installed 'vterm)
+        ;; Loading vterm prompts to compile when its native module is missing.
+        ;; Use the shell fallback until the module is built explicitly.
+        (unless (require 'vterm-module nil t)
+          (error "Native module missing; run M-x vterm to compile it"))
         (require 'vterm)
         (setq vterm-shell (or (getenv "SHELL") shell-file-name))
         t)
