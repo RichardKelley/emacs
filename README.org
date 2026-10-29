@@ -1,9 +1,17 @@
 * Emacs configuration
 
 =init.el= is the current configuration; install it as =~/.emacs.d/init.el=.
+Install =early-init.el= as =~/.emacs.d/early-init.el= as well, so compiler
+settings take effect before Emacs activates installed packages.
 The older =.emacs= and =init.el-*= files are historical configurations.
 The current configuration uses Emacs 30 or newer and installs missing packages
 on startup. The first startup needs network access and Git for Lean's package.
+
+On macOS, automatic native compilation is disabled because the installed
+Emacs 31 development build invokes Clang with an unsupported
+=-mmacosx-version-min=18.0= option. Packages still use ordinary bytecode.
+After repairing the Emacs/compiler installation, remove the workaround from
+both =early-init.el= and =init.el= to re-enable native compilation.
 
 * Rust
 

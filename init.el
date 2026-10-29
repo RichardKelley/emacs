@@ -1,5 +1,12 @@
 ;;; init.el --- Minimal VS Code-like startup layout -*- lexical-binding: t; -*-
 
+;; Also cover explicit loads with -Q -l init.el (which skips early-init.el).
+;; See early-init.el for the macOS native compiler workaround.
+(when (eq system-type 'darwin)
+  (setq native-comp-jit-compilation nil
+        native-comp-enable-subr-trampolines nil
+        package-native-compile nil))
+
 ;; Basic startup behavior.
 (setq inhibit-startup-screen t
       inhibit-startup-message t
@@ -321,7 +328,7 @@
 
 (defun richard/disable-process-exit-query (buffer)
   "Prevent BUFFER's process from prompting when Emacs exits."
-  (when-let ((process (get-buffer-process buffer)))
+  (when-let* ((process (get-buffer-process buffer)))
     (set-process-query-on-exit-flag process nil)))
 
 (defun richard/ensure-treemacs ()
